@@ -53,6 +53,14 @@
         </div>
     </div>
 
+    <div id="adsOverlay" class="overlay">
+        <div class="dialog-box">
+            <button onclick="closeAds()" class="absolute top-3 right-4 text-white text-2xl font-bold z-50 bg-black/50 w-8 h-8 rounded-full">&times;</button>
+            <div id="adContainer"></div>
+            <div class="bg-red-600 py-1.5 text-[9px] font-black text-center uppercase tracking-widest">Ad ends in <span id="adTimer">5</span>s</div>
+        </div>
+    </div>
+
     <div class="sticky top-0 z-50 bg-black/95 backdrop-blur-md p-4 space-y-4">
         <div class="flex justify-between items-center">
             <div class="title-3d">Jj -Max</div>
@@ -103,6 +111,7 @@
 
         let masterMovies = [];
         let currentUserId = null;
+        let adInterval; // Ads Timer အတွက်
 
         async function checkAuth() {
             const { data: { user } } = await _supabase.auth.getUser();
@@ -114,10 +123,38 @@
         async function init() {
             const { data, error } = await _supabase.from('movies').select('*');
             if (!error) {
+                // ၁။ Ads ပြဖူးသလား စစ်ဆေးခြင်း
+                const lastAdsTime = localStorage.getItem('lastAdsShown');
+                const now = new Date().getTime();
+                const adData = data.find(m => m.type === 'ads');
+                
+                // Ads ရှိပြီး ၂၄ နာရီ ကျော်မှ ပြမည်
+                if(adData && (!lastAdsTime || now - lastAdsTime > (24 * 60 * 60 * 1000))) {
+                    showAds(adData);
+                }
+
                 masterMovies = data.filter(m => m.type !== 'ads');
                 renderFeatured(masterMovies);
                 renderGrid(shuffle([...masterMovies]));
             }
+        }
+
+        // Ads Function များ (Added)
+        function showAds(ad) {
+            document.getElementById('adContainer').innerHTML = `<img src="${ad.poster_url}" class="w-full h-auto">`;
+            document.getElementById('adsOverlay').style.display = 'flex';
+            let t = 5;
+            document.getElementById('adTimer').innerText = t;
+            adInterval = setInterval(() => {
+                t--; document.getElementById('adTimer').innerText = t;
+                if(t<=0) { closeAds(); }
+            }, 1000);
+        }
+
+        function closeAds() { 
+            document.getElementById('adsOverlay').style.display = 'none'; 
+            clearInterval(adInterval);
+            localStorage.setItem('lastAdsShown', new Date().getTime());
         }
 
         function shuffle(array) {
