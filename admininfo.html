@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Contact</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: white; font-family: sans-serif; overflow-x: hidden; padding-bottom: 90px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .contact-btn { transition: 0.3s; cursor: pointer; }
+        .contact-btn:active { transform: scale(0.95); }
+        .glass-box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+        #toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #ef4444; color: white; padding: 8px 20px; border-radius: 20px; font-size: 10px; font-weight: bold; display: none; z-index: 10000; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); }
+    </style>
+</head>
+<body class="text-white">
+
+    <div id="toast">Username Copied!</div>
+
+    <div class="sticky top-0 z-50 bg-black/95 backdrop-blur-md p-4 border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <button onclick="history.back()" class="p-2 bg-gray-900 rounded-full active:scale-90 transition">
+                <i class="fas fa-arrow-left text-red-600"></i>
+            </button>
+            <h1 class="text-xl font-black italic tracking-tighter uppercase text-red-600">SETTINGS</h1>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-8">
+        
+        <section>
+            <div class="glass-box p-6 rounded-[2rem] text-center border-l-4 border-l-red-600">
+                <i class="fas fa-bullhorn text-red-600 text-2xl mb-4"></i>
+                <p class="text-[13px] leading-relaxed font-medium text-gray-200">
+                    "မိတ်ဆွေတို့လုပ်ငန်းအတွက် ပိုမိုလွယ်ကူလျင်မြန်စေရန် App, Web, Telegram Bot များ လိုအပ်ပါက ဆက်သွယ်မေးမြန်း ဆွေးနွေးနိုင်ပါသည်"
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5 text-center">Get in Touch</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <a id="fbLink" href="#" target="_blank" class="contact-btn flex flex-col items-center justify-center p-6 bg-blue-600/10 border border-blue-600/20 rounded-[2rem]">
+                    <i class="fab fa-facebook text-3xl text-blue-500 mb-2"></i>
+                    <span class="text-[9px] font-black uppercase tracking-widest">Facebook</span>
+                </a>
+
+                <div onclick="copyTelegram()" class="contact-btn flex flex-col items-center justify-center p-6 bg-sky-600/10 border border-sky-600/20 rounded-[2rem]">
+                    <i class="fab fa-telegram text-3xl text-sky-500 mb-2"></i>
+                    <span id="tgDisplay" class="text-[9px] font-black uppercase tracking-widest">Telegram</span>
+                    <span class="text-[7px] text-sky-500 font-bold mt-1 uppercase">Click to Copy</span>
+                </div>
+            </div>
+            
+            <div class="mt-10 text-center">
+                <p class="text-[9px] text-gray-600 uppercase font-bold tracking-[0.3em]">Developed by</p>
+                <p class="text-[11px] text-gray-400 font-black uppercase mt-1 tracking-tighter">Myo Min Htet</p>
+            </div>
+        </section>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-white/5 px-6 py-4 flex justify-between items-center z-50">
+        <div onclick="window.location.href='index.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="fas fa-home text-xl"></i><span class="text-[8px] font-black uppercase">Home</span></div>
+        <div onclick="window.location.href='fav.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="far fa-star text-xl"></i><span class="text-[8px] font-black uppercase">Fav</span></div>
+        <div onclick="window.location.href='premium.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="fas fa-gem text-xl"></i><span class="text-[8px] font-black uppercase">Sub</span></div>
+        <div onclick="window.location.href='profile.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="far fa-user text-xl"></i><span class="text-[8px] font-black uppercase">User</span></div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentTgUser = "";
+
+        async function loadLinks() {
+            const { data, error } = await _supabase
+                .from('admin_info')
+                .select('fb_link, tg_username')
+                .limit(1)
+                .single();
+
+            if (!error && data) {
+                if(data.fb_link) document.getElementById('fbLink').href = data.fb_link;
+                if(data.tg_username) {
+                    currentTgUser = data.tg_username;
+                    document.getElementById('tgDisplay').innerText = "@" + data.tg_username;
+                }
+            }
+        }
+
+        function copyTelegram() {
+            if(!currentTgUser) return;
+            navigator.clipboard.writeText(currentTgUser).then(() => {
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2000);
+            });
+        }
+
+        loadLinks();
+    </script>
+</body>
+</html>

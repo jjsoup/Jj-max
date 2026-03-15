@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jj Max - Official Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: white; font-family: sans-serif; overflow-x: hidden; padding-bottom: 90px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .active-tab { color: #ef4444; border-bottom: 2px solid #ef4444; }
+        .movie-card { transition: transform 0.2s; cursor: pointer; }
+        .movie-card:active { transform: scale(0.95); }
+        .img-container { aspect-ratio: 2/3; position: relative; overflow: hidden; border-radius: 12px; background: #111; border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* 3D Motion Title Style */
+        .title-3d {
+            font-size: 1.5rem;
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            color: #ef4444;
+            text-shadow: 
+                0 1px 0 #8b0000, 
+                0 2px 0 #7b0000, 
+                0 3px 0 #6b0000, 
+                0 4px 5px rgba(239, 68, 68, 0.4);
+            animation: motion 3s ease-in-out infinite alternate;
+        }
+        @keyframes motion {
+            from { transform: perspective(500px) rotateX(5deg) translateY(0); }
+            to { transform: perspective(500px) rotateX(-5deg) translateY(-2px); text-shadow: 0 5px 15px rgba(239, 68, 68, 0.6); }
+        }
+
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: none; align-items: center; justify-content: center; }
+        .dialog-box { width: 85%; max-width: 350px; background: #111; border-radius: 24px; overflow: hidden; border: 1px solid #333; position: relative; }
+    </style>
+</head>
+<body class="text-white">
+
+    <div id="buyDialog" class="overlay">
+        <div class="dialog-box p-6 text-center">
+            <h2 class="text-xl font-bold mb-2 uppercase italic text-red-600">ကြည့်ရှုခွင့်မရှိသေးပါ</h2>
+            <p class="text-gray-400 text-[11px] mb-6">ဤကားကိုကြည့်ရှုရန် Plan ဝယ်ယူထားရန် သို့မဟုတ် တစ်ကားချင်းဝယ်ယူရန် လိုအပ်ပါသည်။</p>
+            <div class="space-y-3">
+                <button id="singleBuyBtn" class="w-full bg-white text-black py-3 rounded-xl font-black text-[10px] uppercase">တစ်ကားချင်းဝယ်မည်</button>
+                <button onclick="window.location.href='premium.html'" class="w-full bg-red-600 text-white py-3 rounded-xl font-black text-[10px] uppercase">VIP Plan ဝယ်ယူမည်</button>
+                <button onclick="document.getElementById('buyDialog').style.display='none'" class="w-full py-2 text-gray-500 text-[9px] uppercase font-bold">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sticky top-0 z-50 bg-black/95 backdrop-blur-md p-4 space-y-4">
+        <div class="flex justify-between items-center">
+            <div class="title-3d">Jj -Max</div>
+            <div class="flex gap-4 text-gray-400">
+                <i class="fas fa-bell text-xl relative" onclick="window.location.href='noti.html'">
+                    <span class="absolute -top-1 -right-1 bg-red-600 w-2 h-2 rounded-full"></span>
+                </i>
+            </div>
+        </div>
+        
+        <div class="relative">
+            <input type="text" id="searchInput" onkeyup="searchMovies()" placeholder="Search movies..." class="w-full bg-gray-900 border-none rounded-2xl py-2.5 px-4 pl-10 focus:ring-1 focus:ring-red-600 outline-none text-sm font-bold text-white">
+            <i class="fa fa-search absolute left-3.5 top-3.5 text-gray-500 text-sm"></i>
+        </div>
+
+        <div id="filterBar" class="flex gap-6 overflow-x-auto no-scrollbar py-1 text-[10px] font-black uppercase tracking-widest text-gray-500 border-b border-white/5">
+            <button onclick="filterByCategory('All', this)" class="cat-btn active-tab flex-shrink-0 pb-1">All</button>
+            <button onclick="filterByCategory('Free', this)" class="cat-btn flex-shrink-0 pb-1">Free</button>
+            <button onclick="filterByCategory('Myanmar', this)" class="cat-btn flex-shrink-0 pb-1">Myanmar</button>
+            <button onclick="filterByCategory('India', this)" class="cat-btn flex-shrink-0 pb-1">India</button>
+            <button onclick="filterByCategory('Foreign', this)" class="cat-btn flex-shrink-0 pb-1">Foreign</button>
+            <button onclick="window.location.href='sport.html'" class="cat-btn flex-shrink-0 pb-1">Sport</button>
+        </div>
+    </div>
+
+    <div class="p-4">
+        <h3 class="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-4">The Best Movie</h3>
+        <div id="featuredList" class="flex gap-4 overflow-x-auto no-scrollbar"></div>
+    </div>
+
+    <div class="p-4">
+        <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5">Discover Movies</h3>
+        <div id="movieGrid" class="grid grid-cols-3 gap-x-3 gap-y-6 text-center"></div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-white/5 px-4 py-4 flex justify-between items-center z-50">
+        <div onclick="window.location.href='index.html'" class="flex flex-col items-center gap-1 text-red-600"><i class="fas fa-home text-xl"></i><span class="text-[8px] font-black uppercase">Home</span></div>
+        <div onclick="window.location.href='fav.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="far fa-star text-xl"></i><span class="text-[8px] font-black uppercase">Fav</span></div>
+        <div onclick="window.location.href='premium.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="fas fa-gem text-xl"></i><span class="text-[8px] font-black uppercase">Sub</span></div>
+        <div onclick="window.location.href='admininfo.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="fas fa-headset text-xl"></i><span class="text-[8px] font-black uppercase">Contact</span></div>
+        <div onclick="window.location.href='profile.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="far fa-user text-xl"></i><span class="text-[8px] font-black uppercase">Profile</span></div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let masterMovies = [];
+        let currentUserId = null;
+
+        async function checkAuth() {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) { window.location.href = 'login.html'; return; }
+            currentUserId = user.id;
+            init();
+        }
+
+        async function init() {
+            const { data, error } = await _supabase.from('movies').select('*');
+            if (!error) {
+                masterMovies = data.filter(m => m.type !== 'ads');
+                renderFeatured(masterMovies);
+                renderGrid(shuffle([...masterMovies]));
+            }
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function renderFeatured(movies) {
+            const feat = document.getElementById('featuredList');
+            feat.innerHTML = movies.filter(m => m.pin === true || m.pin === "true").map(movie => `
+                <div class="min-w-[280px] h-40 rounded-[2rem] overflow-hidden relative shrink-0 movie-card" onclick='handleMovieClick(${JSON.stringify(movie)})'>
+                    <img src="${movie.poster_url}" class="w-full h-full object-cover opacity-70">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                    <div class="absolute bottom-4 left-5">
+                        <span class="bg-red-600 text-[8px] font-black px-2 py-0.5 rounded-full uppercase mb-1 inline-block">THE BEST Choice</span>
+                        <h4 class="text-sm font-black uppercase italic text-white tracking-tight">${movie.title}</h4>
+                    </div>
+                </div>`).join('');
+        }
+
+        function renderGrid(list) {
+            const grid = document.getElementById('movieGrid');
+            grid.innerHTML = list.map(m => `
+                <div class="movie-card group" onclick='handleMovieClick(${JSON.stringify(m)})'>
+                    <div class="img-container">
+                        <img src="${m.poster_url}" class="w-full h-full object-cover">
+                        ${Number(m.price) > 0 ? '<div class="absolute top-2 right-2 bg-red-600 text-[7px] px-1.5 py-0.5 rounded font-bold uppercase italic">VIP</div>' : ''}
+                    </div>
+                    <h4 class="mt-2 text-[10px] font-bold truncate px-1 uppercase text-gray-400 group-hover:text-red-500">${m.title}</h4>
+                </div>`).join('');
+        }
+
+        async function handleMovieClick(movie) {
+            const price = Number(movie.price);
+            if (price === 0) return goToPlay(movie);
+
+            const { data: profile } = await _supabase.from('profiles').select('movies, expiry_date').eq('id', currentUserId).single();
+            if (profile) {
+                const now = new Date();
+                const expiry = profile.expiry_date ? new Date(profile.expiry_date) : null;
+                const isVIPValid = expiry && expiry > now;
+                const isMovieBought = profile.movies && profile.movies.includes(movie.id.toString());
+                if (isVIPValid || isMovieBought) return goToPlay(movie);
+            }
+
+            document.getElementById('buyDialog').style.display = 'flex';
+            document.getElementById('singleBuyBtn').onclick = () => {
+                localStorage.setItem('currentMovie', JSON.stringify(movie));
+                window.location.href = 'moviebuy.html';
+            };
+        }
+
+        function goToPlay(movie) {
+            localStorage.setItem('currentMovie', JSON.stringify(movie));
+            window.location.href = 'play.html';
+        }
+
+        function filterByCategory(cat, btn) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active-tab'));
+            btn.classList.add('active-tab');
+            let filtered = masterMovies;
+            if(cat === 'Free') filtered = masterMovies.filter(m => Number(m.price) === 0);
+            else if(cat !== 'All') filtered = masterMovies.filter(m => m.category === cat);
+            renderGrid(shuffle([...filtered]));
+        }
+
+        function searchMovies() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            renderGrid(masterMovies.filter(m => m.title.toLowerCase().includes(term)));
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>

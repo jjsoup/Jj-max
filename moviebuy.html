@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Movie - Premium Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
+        .movie-banner { height: 280px; position: relative; overflow: hidden; border-radius: 0 0 3.5rem 3.5rem; }
+        .payment-box { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 2.5rem; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .blur-bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: blur(20px) brightness(0.4); transform: scale(1.1); }
+        
+        /* Success Dialog Styling */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-blur: 10px; }
+        .success-card { background: #111; border: 1px solid #222; width: 85%; max-width: 320px; border-radius: 2.5rem; padding: 2.5rem; text-align: center; transform: scale(0.9); transition: 0.3s; }
+        .success-card.show { transform: scale(1); }
+        .icon-box { width: 60px; height: 60px; background: #22c55e; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; box-shadow: 0 10px 20px rgba(34,197,94,0.3); }
+    </style>
+</head>
+<body class="pb-24">
+
+    <div id="successDialog" class="overlay">
+        <div class="success-card shadow-2xl">
+            <div class="icon-box">
+                <i class="fas fa-check text-2xl text-white"></i>
+            </div>
+            <h2 class="text-xl font-black italic uppercase mb-2">Request Sent!</h2>
+            <p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest leading-relaxed mb-8 px-2">
+                ငွေလွှဲမှု အချက်အလက်ကို ပေးပို့ပြီးပါပြီ။ Admin မှ အတည်ပြုပြီးပါက ကြည့်ရှုနိုင်ပါမည်။
+            </p>
+            <button onclick="window.location.href='index.html'" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-lg">
+                Back to Home
+            </button>
+        </div>
+    </div>
+
+    <div class="movie-banner shadow-2xl">
+        <div id="posterBg" class="blur-bg border-b border-white/5"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent"></div>
+        
+        <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+            <button onclick="window.history.back()" class="absolute top-8 left-6 w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10">
+                <i class="fas fa-arrow-left text-sm"></i>
+            </button>
+            <h1 id="movieTitle" class="text-2xl font-black uppercase italic tracking-tighter mb-2 text-white">Loading...</h1>
+            <div class="bg-red-600/90 backdrop-blur-md px-5 py-1.5 rounded-full shadow-xl">
+                <p class="text-white font-black text-xs italic tracking-widest"><span id="moviePrice">0</span> MMK</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-6 -mt-10 relative z-10">
+        <div class="payment-box p-6 shadow-2xl shadow-red-900/10">
+            <div class="text-center mb-6">
+                <p class="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em] mb-1">Select Payment</p>
+                <div class="h-1 w-8 bg-red-600 mx-auto rounded-full"></div>
+            </div>
+
+            <div class="space-y-1">
+                <div class="flex items-center justify-between py-4 border-b border-white/5">
+                    <div class="flex items-center gap-4">
+                        <img src="kpay.jpeg" class="w-12 h-12 rounded-2xl object-cover border border-white/10" onerror="this.src='https://cdn-icons-png.flaticon.com/512/10534/10534579.png'">
+                        <div>
+                            <p class="font-black italic text-[11px] mb-0.5">KPay</p>
+                            <p id="kpayNo" class="text-xs text-gray-500 font-mono">09 123 456 789</p>
+                        </div>
+                    </div>
+                    <button onclick="copyText('kpayNo')" class="text-[9px] font-black text-blue-500 uppercase bg-blue-500/10 px-4 py-2 rounded-xl active:bg-blue-500 active:text-white transition-all">Copy</button>
+                </div>
+
+                <div class="flex items-center justify-between py-4">
+                    <div class="flex items-center gap-4">
+                        <img src="wave.jpeg" class="w-12 h-12 rounded-2xl object-cover border border-white/10" onerror="this.src='https://cdn-icons-png.flaticon.com/512/10534/10534579.png'">
+                        <div>
+                            <p class="font-black italic text-[11px] mb-0.5">Wave Pay</p>
+                            <p id="waveNo" class="text-xs text-gray-500 font-mono">09 123 456 789</p>
+                        </div>
+                    </div>
+                    <button onclick="copyText('waveNo')" class="text-[9px] font-black text-blue-500 uppercase bg-blue-500/10 px-4 py-2 rounded-xl active:bg-blue-500 active:text-white transition-all">Copy</button>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-6 border-t border-white/5">
+                <label class="text-[9px] font-black text-gray-500 uppercase block mb-4 text-center tracking-widest">ငွေလွှဲနံပါတ် နောက်ဆုံး (၆) လုံး</label>
+                <input type="number" id="tidInput" oninput="if(this.value.length > 6) this.value = this.value.slice(0, 6);" 
+                    placeholder="xxxxxx" 
+                    class="w-full bg-black/50 border-2 border-gray-900 rounded-[2rem] py-5 px-4 text-center text-3xl font-black tracking-[0.5em] focus:border-red-600 outline-none text-red-600 transition-all">
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-8 left-0 right-0 px-8">
+        <button id="buyBtn" onclick="submitOrder()" class="w-full bg-red-600 text-white py-5 rounded-[2rem] font-black uppercase tracking-[0.2em] italic text-xs shadow-2xl shadow-red-600/40 active:scale-95 transition-all">
+            အတည်ပြုမည်
+        </button>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentMovie = null;
+        let currentUserId = null;
+
+        async function init() {
+            const movieData = JSON.parse(localStorage.getItem('currentMovie'));
+            if (!movieData) { window.location.href = 'index.html'; return; }
+            currentMovie = movieData;
+
+            document.getElementById('posterBg').style.backgroundImage = `url('${currentMovie.poster_url}')`;
+            document.getElementById('movieTitle').innerText = currentMovie.title;
+            document.getElementById('moviePrice').innerText = Number(currentMovie.price).toLocaleString();
+
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) { window.location.href = 'login.html'; return; }
+            currentUserId = user.id;
+
+            const { data: plans } = await _supabase.from('premium').select('*').limit(1).single();
+            if (plans) {
+                document.getElementById('kpayNo').innerText = plans.kpay_no;
+                document.getElementById('waveNo').innerText = plans.wave_no;
+            }
+        }
+
+        async function submitOrder() {
+            const tid = document.getElementById('tidInput').value;
+            const btn = document.getElementById('buyBtn');
+
+            if (tid.length < 6) return; // Button ကို disable ထားရင် ပိုကောင်းပါမည်
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            const { error } = await _supabase.from('payments').insert([{
+                user_id: currentUserId,
+                plan_name: currentMovie.id, 
+                amount: currentMovie.price,
+                transaction_id: tid,
+                status: 'pending'
+            }]);
+
+            if (!error) {
+                // Show Success Dialog instead of Alert
+                const dialog = document.getElementById('successDialog');
+                dialog.style.display = 'flex';
+                setTimeout(() => dialog.querySelector('.success-card').classList.add('show'), 10);
+            } else {
+                alert("Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = "အတည်ပြုမည်";
+            }
+        }
+
+        function copyText(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text);
+            const btn = event.target;
+            btn.innerText = "Copied!";
+            setTimeout(() => btn.innerText = "Copy", 1500);
+        }
+
+        init();
+    </script>
+</body>
+</html>

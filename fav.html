@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Favorites</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: white; font-family: sans-serif; padding-bottom: 90px; }
+        .movie-card { transition: 0.3s; cursor: pointer; }
+        .img-container { aspect-ratio: 2/3; position: relative; overflow: hidden; border-radius: 15px; background: #111; border: 1px solid rgba(255,255,255,0.05); }
+        .no-data { height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="flex items-center gap-4 mb-8">
+        <i class="fas fa-arrow-left text-xl text-yellow-500" onclick="window.location.href='index.html'"></i>
+        <h1 class="text-xl font-black uppercase italic tracking-tighter text-red-600">My Favorites</h1>
+    </div>
+
+    <div id="favGrid" class="grid grid-cols-3 gap-3">
+        <div class="col-span-3 text-center py-20 text-gray-800 italic uppercase text-[10px] font-black tracking-widest">
+            <i class="fas fa-spinner fa-spin mb-2 text-xl block text-red-600"></i>
+            Loading Favorites...
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-white/5 px-8 py-4 flex justify-between items-center z-50">
+        <div onclick="window.location.href='index.html'" class="text-gray-500"><i class="fas fa-home text-xl"></i></div>
+        <div onclick="window.location.href='fav.html'" class="text-red-600"><i class="fas fa-heart text-xl"></i></div>
+        <div onclick="window.location.href='premium.html'" class="text-gray-500"><i class="fas fa-gem text-xl"></i></div>
+        <div onclick="window.location.href='profile.html'" class="text-gray-500"><i class="far fa-user text-xl"></i></div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentUserId = null;
+
+        async function init() {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) { window.location.href = 'login.html'; return; }
+            currentUserId = user.id;
+            fetchFavorites();
+        }
+
+        async function fetchFavorites() {
+            try {
+                // ၁။ Profiles table ထဲက favorites column (Array) ကို ယူမည်
+                const { data: profile, error: pErr } = await _supabase
+                    .from('profiles')
+                    .select('favorites')
+                    .eq('id', currentUserId)
+                    .single();
+
+                if (pErr || !profile || !profile.favorites || profile.favorites.length === 0) {
+                    showEmpty();
+                    return;
+                }
+
+                // ၂။ ရလာတဲ့ IDs တွေနဲ့ ကိုက်ညီတဲ့ Movies တွေကို Movies table ထဲမှာ ရှာမည်
+                const { data: movies, error: mErr } = await _supabase
+                    .from('movies')
+                    .select('*')
+                    .in('id', profile.favorites);
+
+                if (!mErr && movies && movies.length > 0) {
+                    renderGrid(movies);
+                } else {
+                    showEmpty();
+                }
+            } catch (err) {
+                showEmpty();
+            }
+        }
+
+        function renderGrid(list) {
+            const grid = document.getElementById('favGrid');
+            grid.innerHTML = list.map(m => `
+                <div class="movie-card" onclick='goToPlay(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
+                    <div class="img-container">
+                        <img src="${m.poster_url}" class="w-full h-full object-cover">
+                        <div class="absolute top-2 right-2 bg-black/80 w-6 h-6 flex items-center justify-center rounded-full" 
+                             onclick="event.stopPropagation(); removeFav('${m.id}')">
+                            <i class="fas fa-times text-red-600 text-[10px]"></i>
+                        </div>
+                    </div>
+                    <h4 class="mt-2 text-[9px] font-bold truncate uppercase text-gray-500 text-center px-1 tracking-tighter">${m.title}</h4>
+                </div>
+            `).join('');
+        }
+
+        async function removeFav(movieId) {
+            const { data: profile } = await _supabase.from('profiles').select('favorites').eq('id', currentUserId).single();
+            let updatedFavs = profile.favorites.filter(id => id.toString() !== movieId.toString());
+
+            const { error } = await _supabase.from('profiles').update({ favorites: updatedFavs }).eq('id', currentUserId);
+            if (!error) fetchFavorites(); // List ပြန် Refresh လုပ်မည်
+        }
+
+        function showEmpty() {
+            document.getElementById('favGrid').innerHTML = `
+                <div class="no-data col-span-3">
+                    <i class="far fa-heart text-5xl text-gray-900 mb-4"></i>
+                    <p class="text-gray-700 uppercase font-black italic text-[10px] tracking-[0.2em]">Your wishlist is empty</p>
+                    <button onclick="window.location.href='index.html'" class="mt-8 bg-gray-900 px-6 py-3 rounded-2xl text-yellow-500 text-[9px] font-black uppercase tracking-widest">Explore Movies</button>
+                </div>
+            `;
+        }
+
+        function goToPlay(movie) {
+            localStorage.setItem('currentMovie', JSON.stringify(movie));
+            window.location.href = 'play.html';
+        }
+
+        init();
+    </script>
+</body>
+</html>

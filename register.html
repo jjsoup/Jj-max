@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Movie Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-black text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-[#0a0a0a] p-8 rounded-[2.5rem] shadow-2xl border border-white/5">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-black italic uppercase tracking-tighter text-red-600">Join Now</h2>
+            <p class="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-2">No Email Confirm Required</p>
+        </div>
+
+        <form id="registerForm" class="space-y-5">
+            <div>
+                <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Email Address</label>
+                <input type="email" id="email" placeholder="example@gmail.com" required 
+                    class="w-full p-4 bg-black border-2 border-gray-900 rounded-2xl focus:border-red-600 outline-none transition-all text-sm font-bold">
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Password</label>
+                <input type="password" id="password" placeholder="••••••••" required 
+                    class="w-full p-4 bg-black border-2 border-gray-900 rounded-2xl focus:border-red-600 outline-none transition-all text-sm font-bold">
+            </div>
+
+            <button type="submit" id="regBtn" 
+                class="w-full bg-red-600 text-white font-black py-5 rounded-2xl shadow-xl shadow-red-600/20 hover:bg-red-700 transition duration-300 transform active:scale-95 uppercase italic tracking-widest text-xs">
+                CREATE ACCOUNT
+            </button>
+        </form>
+
+        <div class="mt-8 text-center">
+            <span class="text-gray-600 text-[10px] font-bold uppercase">Have an account?</span>
+            <a href="login.html" class="text-white font-black text-[10px] uppercase underline ml-1">Login here</a>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('regBtn');
+            btn.disabled = true;
+            btn.innerText = 'Creating...';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const { data, error } = await _supabase.auth.signUp({ email, password });
+
+            if (error) {
+                alert("Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = 'CREATE ACCOUNT';
+            } else {
+                const user = data.user;
+                if (user) {
+                    await _supabase.from('profiles').upsert([{ 
+                        id: user.id, 
+                        username: email.split('@')[0], 
+                        is_subscribed: false, 
+                        movies: [] 
+                    }]);
+                }
+                alert("Account ဖွင့်ခြင်း အောင်မြင်ပါသည်။ Login ဝင်နိုင်ပါပြီ။");
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html>

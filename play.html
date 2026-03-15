@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Play Movie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
+        .video-box { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: #0a0a0a; }
+        .video-box iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .fav-active { color: #ef4444 !important; }
+        .glass-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* Modal Style */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(8px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .dialog-box { width: 100%; max-width: 320px; background: #111; border-radius: 2.5rem; border: 1px solid #222; overflow: hidden; }
+    </style>
+</head>
+<body class="pb-10">
+
+    <div id="introDialog" class="overlay">
+        <div class="dialog-box">
+            <img src="videotq.jpg" class="w-full h-auto object-cover border-b border-white/5" onerror="this.src='https://via.placeholder.com/400x250?text=Video+Guide'">
+            <div class="p-8 text-center">
+                <p class="text-[12px] text-gray-300 leading-relaxed font-medium mb-6">
+                    "ပုံထဲကလို စာပေါ်လာပါက အနည်းငယ်အောက်ကိုဆွဲပြီး video ပေါ်လာရင် လက်ဖြင့် နှစ်ချက်ထိပြီးကြည့်ပါ"
+                </p>
+                
+                <label class="flex items-center justify-center gap-2 mb-6 cursor-pointer group">
+                    <input type="checkbox" id="dontShowAgain" class="accent-red-600 w-4 h-4 rounded">
+                    <span class="text-[10px] font-black uppercase text-gray-500 group-hover:text-white transition">နောက်ခါ ထပ်မပြပါနဲ့</span>
+                </label>
+
+                <button onclick="closeIntro()" class="w-full bg-red-600 text-white py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition">
+                    OK နားလည်ပါပြီ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-4 flex items-center gap-4">
+        <button onclick="history.back()" class="p-2 bg-gray-900 rounded-full active:scale-90 transition">
+            <i class="fas fa-arrow-left text-red-600"></i>
+        </button>
+        <h2 id="topTitle" class="text-xs font-bold truncate uppercase tracking-widest text-gray-400">Loading...</h2>
+    </div>
+
+    <div id="vBox" class="video-box">
+        <iframe id="videoPlayer" src="" allowfullscreen allow="autoplay"></iframe>
+    </div>
+
+    <div class="p-6 space-y-5">
+        <div class="space-y-3">
+            <h1 id="movieTitle" class="text-3xl font-black text-red-600 italic uppercase leading-none tracking-tighter">...</h1>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleFavorite()" class="glass-btn flex items-center gap-2 px-4 py-2 rounded-full active:scale-95 transition">
+                    <i id="favIcon" class="far fa-heart"></i>
+                    <span id="favText" class="text-[10px] font-black uppercase tracking-widest">Favorite</span>
+                </button>
+                <div class="glass-btn flex items-center gap-2 px-4 py-2 rounded-full">
+                    <i class="fas fa-film text-red-600"></i>
+                    <span id="movieType" class="text-[10px] font-black uppercase tracking-widest text-gray-300">Type</span>
+                </div>
+            </div>
+        </div>
+        <div class="h-[1px] bg-white/5 w-full"></div>
+        <div class="space-y-2 text-sm text-gray-400 italic" id="movieDesc">...</div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        let currentMovie = null;
+        let currentUserId = null;
+
+        async function init() {
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (!user) { window.location.href = 'login.html'; return; }
+            currentUserId = user.id;
+
+            const data = localStorage.getItem('currentMovie');
+            if (!data) { window.location.href = 'index.html'; return; }
+            currentMovie = JSON.parse(data);
+
+            document.getElementById('topTitle').innerText = currentMovie.title;
+            document.getElementById('movieTitle').innerText = currentMovie.title;
+            document.getElementById('movieType').innerText = currentMovie.type || "General";
+            document.getElementById('movieDesc').innerText = currentMovie.description || "No description.";
+            document.getElementById('videoPlayer').src = currentMovie.video_id;
+
+            updateFavUIFromDB();
+            checkFirstVisit();
+        }
+
+        // --- Dialog Logic ---
+        function checkFirstVisit() {
+            const skipIntro = localStorage.getItem('skipIntro');
+            if (!skipIntro) {
+                document.getElementById('introDialog').style.display = 'flex';
+            }
+        }
+
+        function closeIntro() {
+            const checkbox = document.getElementById('dontShowAgain');
+            if (checkbox.checked) {
+                localStorage.setItem('skipIntro', 'true');
+            }
+            document.getElementById('introDialog').style.display = 'none';
+        }
+
+        // --- Favorite Logic (No Changes) ---
+        async function toggleFavorite() {
+            const { data: profile } = await _supabase.from('profiles').select('favorites').eq('id', currentUserId).single();
+            if (!profile) return;
+
+            let currentFavs = profile.favorites || [];
+            const movieStrId = String(currentMovie.id);
+            const index = currentFavs.indexOf(movieStrId);
+
+            if (index === -1) currentFavs.push(movieStrId);
+            else currentFavs.splice(index, 1);
+
+            const { error } = await _supabase.from('profiles').update({ favorites: currentFavs }).eq('id', currentUserId);
+            if (!error) updateFavUI(currentFavs.includes(movieStrId));
+        }
+
+        async function updateFavUIFromDB() {
+            const { data: profile } = await _supabase.from('profiles').select('favorites').eq('id', currentUserId).single();
+            const isFav = profile?.favorites?.includes(String(currentMovie.id));
+            updateFavUI(isFav);
+        }
+
+        function updateFavUI(isFav) {
+            const icon = document.getElementById('favIcon');
+            const text = document.getElementById('favText');
+            if (isFav) {
+                icon.className = "fas fa-heart fav-active";
+                text.innerText = "Favorited";
+                text.classList.add('text-red-500');
+            } else {
+                icon.className = "far fa-heart";
+                text.innerText = "Favorite";
+                text.classList.remove('text-red-500');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

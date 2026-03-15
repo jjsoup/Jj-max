@@ -1,0 +1,24 @@
+// sw.js
+self.addEventListener('push', function(event) {
+    const data = event.data.json();
+    const options = {
+        body: data.body,
+        icon: 'icon.png', // သင့် App ရဲ့ logo path
+        badge: 'icon.png',
+        vibrate: [100, 50, 100],
+        data: {
+            url: data.url || 'notification.html'
+        }
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow(event.notification.data.url)
+    );
+});

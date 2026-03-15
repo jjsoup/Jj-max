@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Movie Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700">
+        <h2 class="text-3xl font-bold text-center text-yellow-500 mb-2">Welcome Back</h2>
+        <p class="text-gray-400 text-center mb-8 text-sm">Login to your account to start watching</p>
+
+        <form id="loginForm" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
+                <input type="email" id="email" placeholder="example@gmail.com" required 
+                    class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none transition">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                <input type="password" id="password" placeholder="••••••••" required 
+                    class="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none transition">
+            </div>
+
+            <button type="submit" id="loginBtn" 
+                class="w-full bg-yellow-500 text-black font-bold py-3 rounded-lg hover:bg-yellow-600 transition duration-300 transform active:scale-95">
+                LOG IN
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm">
+            <span class="text-gray-400">New here?</span>
+            <a href="register.html" class="text-yellow-500 hover:underline ml-1">Create an account</a>
+        </div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('loginBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btn.disabled = true;
+            btn.innerText = 'Checking credentials...';
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // 1. Supabase Auth Login
+            const { data, error } = await _supabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                alert("Login Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = 'LOG IN';
+                return;
+            }
+
+            // 2. Login အောင်မြင်ရင် user ရဲ့ Subscription status ကို profiles table မှာ စစ်မယ်
+            const user = data.user;
+            const { data: profile, error: profileError } = await _supabase
+                .from('profiles')
+                .select('is_subscribed')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError || !profile || profile.is_subscribed === false) {
+                // လစဉ်ကြေး မပေးရသေးရင် သို့မဟုတ် profile မရှိရင် payment page ကိုသွားမယ်
+                window.location.href = 'payment.html';
+            } else {
+                // လစဉ်ကြေး ပေးထားပြီးသားဆိုရင် user index (home) ကိုသွားမယ်
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>

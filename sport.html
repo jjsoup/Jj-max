@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports - Live Streaming</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: white; font-family: sans-serif; padding-bottom: 90px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .sport-card { transition: transform 0.2s; cursor: pointer; }
+        .sport-card:active { transform: scale(0.95); }
+        .live-tag { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .img-container { aspect-ratio: 16/9; position: relative; overflow: hidden; border-radius: 16px; background: #111; border: 1px solid rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body>
+
+    <div class="sticky top-0 z-50 bg-black/95 backdrop-blur-md p-4 border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <button onclick="history.back()" class="p-2 bg-gray-900 rounded-full active:scale-90 transition">
+                <i class="fas fa-arrow-left text-yellow-500"></i>
+            </button>
+            <h1 class="text-xl font-black italic tracking-tighter uppercase text-red-600">SPORTS LIVE</h1>
+        </div>
+    </div>
+
+    <div class="p-4">
+        <div class="bg-gradient-to-r from-red-900 to-black p-6 rounded-[2rem] border border-red-600/20 relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-2 h-2 bg-red-600 rounded-full live-tag"></span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-red-500">Live Now</span>
+                </div>
+                <h2 class="text-2xl font-black italic uppercase leading-none mb-1">Premier League</h2>
+                <p class="text-gray-400 text-xs mb-4 italic">Matchday Live Updates & Streams</p>
+                <button class="bg-white text-black text-[10px] font-black px-6 py-2 rounded-full uppercase">Watch Now</button>
+            </div>
+            <i class="fas fa-running absolute -right-4 -bottom-4 text-8xl text-white/5 transform -rotate-12"></i>
+        </div>
+    </div>
+
+    <div class="p-4">
+        <div class="flex justify-between items-center mb-5">
+            <h3 class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Sport Highlights</h3>
+            <span id="count" class="text-[10px] font-bold text-red-600 bg-red-600/10 px-2 py-0.5 rounded-full">0 Items</span>
+        </div>
+        
+        <div id="sportGrid" class="grid grid-cols-1 gap-6">
+            <div class="text-center py-10 text-gray-600 text-xs uppercase font-bold tracking-widest">Loading Sports...</div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-white/5 px-6 py-4 flex justify-between items-center z-50">
+        <div onclick="window.location.href='index.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="fas fa-home text-xl"></i><span class="text-[8px] font-black uppercase">Home</span></div>
+        <div onclick="window.location.href='fav.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="far fa-star text-xl"></i><span class="text-[8px] font-black uppercase">Fav</span></div>
+        <div onclick="window.location.href='premium.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="fas fa-gem text-xl"></i><span class="text-[8px] font-black uppercase">Sub</span></div>
+        <div onclick="window.location.href='profile.html'" class="flex flex-col items-center gap-1 text-gray-500"><i class="far fa-user text-xl"></i><span class="text-[8px] font-black uppercase">User</span></div>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        async function loadSports() {
+            // Category မှာ Sport လို့ ပေးထားတဲ့ကားတွေကိုပဲ ဆွဲထုတ်မယ်
+            const { data, error } = await _supabase
+                .from('movies')
+                .select('*')
+                .eq('category', 'Sport');
+
+            if (error) {
+                console.error(error);
+                return;
+            }
+
+            const grid = document.getElementById('sportGrid');
+            document.getElementById('count').innerText = `${data.length} Items`;
+
+            if (data.length === 0) {
+                grid.innerHTML = `<div class="text-center py-20 text-gray-700 text-[10px] font-black uppercase italic tracking-widest">No sports content available</div>`;
+                return;
+            }
+
+            grid.innerHTML = data.map(m => `
+                <div class="sport-card group" onclick='goToPlay(${JSON.stringify(m)})'>
+                    <div class="img-container mb-3">
+                        <img src="${m.poster_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
+                        <div class="absolute bottom-3 left-4">
+                             <div class="flex items-center gap-2">
+                                <i class="fas fa-play-circle text-red-600 text-xl"></i>
+                                <span class="text-[10px] font-black uppercase tracking-tighter">${m.type || 'Highlight'}</span>
+                             </div>
+                        </div>
+                        ${Number(m.price) > 0 ? '<div class="absolute top-3 right-3 bg-red-600 text-[8px] px-2 py-0.5 rounded-full font-black uppercase italic">VIP</div>' : ''}
+                    </div>
+                    <h4 class="text-sm font-black uppercase italic text-gray-200 group-hover:text-red-500 transition">${m.title}</h4>
+                    <p class="text-[9px] text-gray-500 uppercase font-bold tracking-widest mt-1">${m.description?.substring(0, 60) || 'No details available'}...</p>
+                </div>
+            `).join('');
+        }
+
+        function goToPlay(movie) {
+            localStorage.setItem('currentMovie', JSON.stringify(movie));
+            window.location.href = 'play.html';
+        }
+
+        loadSports();
+    </script>
+</body>
+</html>

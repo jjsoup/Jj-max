@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Payment - Movie Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background-color: #0f172a; }
+    </style>
+</head>
+<body class="text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-gray-800 p-8 rounded-3xl shadow-2xl border border-gray-700">
+        <h2 class="text-2xl font-bold text-center text-yellow-500 mb-2">Premium Access</h2>
+        <p class="text-gray-400 text-center text-sm mb-8">Choose a method and pay 5,000 MMK for 30 days</p>
+        
+        <div class="space-y-3 mb-8">
+            <div class="flex items-center justify-between p-4 bg-gray-900 rounded-2xl border border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold">K</div>
+                    <div>
+                        <p class="text-sm font-bold">KPay</p>
+                        <p class="text-xs text-gray-400">09 123 456 789</p>
+                    </div>
+                </div>
+                <button onclick="copyText('09 123 456 789')" class="text-xs bg-gray-700 px-2 py-1 rounded hover:bg-gray-600">Copy</button>
+            </div>
+
+            <div class="flex items-center justify-between p-4 bg-gray-900 rounded-2xl border border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center font-bold">W</div>
+                    <div>
+                        <p class="text-sm font-bold">Wave Money</p>
+                        <p class="text-xs text-gray-400">09 123 456 789</p>
+                    </div>
+                </div>
+                <button onclick="copyText('09 123 456 789')" class="text-xs bg-gray-700 px-2 py-1 rounded hover:bg-gray-600">Copy</button>
+            </div>
+        </div>
+
+        <form id="payForm" class="space-y-4">
+            <div>
+                <label class="block text-xs text-gray-500 mb-2 uppercase tracking-widest">Transaction Info</label>
+                <input type="text" id="tranId" placeholder="Enter last 6 digits" required 
+                    class="w-full p-4 bg-gray-900 border border-gray-700 rounded-xl focus:ring-2 focus:ring-yellow-500 outline-none text-center font-mono text-lg tracking-widest">
+            </div>
+            
+            <button type="submit" id="payBtn" 
+                class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl hover:bg-yellow-600 transition duration-300 transform active:scale-95 shadow-lg shadow-yellow-500/20">
+                CONFIRM PAYMENT
+            </button>
+        </form>
+
+        <p id="statusMsg" class="mt-4 text-center text-xs text-gray-500 hidden italic">Processing your request...</p>
+    </div>
+
+    <script>
+        const SB_URL = 'https://tzqocixgnvyecjravvsr.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6cW9jaXhnbnZ5ZWNqcmF2dnNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2OTU2NDksImV4cCI6MjA4NzI3MTY0OX0._WWqrZkvQRijutrCnLCbWoWM4Eid6S_o_J7DsfkXeT8';
+        const _supabase = supabase.createClient(SB_URL, SB_KEY);
+
+        const form = document.getElementById('payForm');
+        const btn = document.getElementById('payBtn');
+
+        // Copy function
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            alert("Number copied: " + text);
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btn.disabled = true;
+            btn.innerText = 'Submitting...';
+
+            // 1. Check current logged-in user
+            const { data: { user } } = await _supabase.auth.getUser();
+
+            if (!user) {
+                alert("Please login first!");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const tranId = document.getElementById('tranId').value;
+
+            // 2. Insert into payment_requests table
+            const { error } = await _supabase
+                .from('payment_requests')
+                .insert([
+                    { 
+                        user_id: user.id, 
+                        user_email: user.email, 
+                        tran_id: tranId,
+                        status: 'pending' 
+                    }
+                ]);
+
+            if (error) {
+                alert("Error: " + error.message);
+                btn.disabled = false;
+                btn.innerText = 'CONFIRM PAYMENT';
+            } else {
+                alert("တင်ပြမှုအောင်မြင်ပါသည်။ Admin မှ စစ်ဆေးပြီးပါက (၅) မိနစ်အတွင်း Plan ဖွင့်ပေးပါမည်။");
+                // ခဏနေရင် Login page ဒါမှမဟုတ် status ပြတဲ့နေရာကို ပြန်သွားမယ်
+                window.location.href = 'login.html';
+            }
+        });
+    </script>
+</body>
+</html>
